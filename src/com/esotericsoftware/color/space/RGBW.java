@@ -1,6 +1,8 @@
 
 package com.esotericsoftware.color.space;
 
+import com.esotericsoftware.color.Colors;
+
 /** Linear RGB with 1 white channel for LEDs. Values are clamped [0..1] */
 public record RGBW (
 	/** Red [0..1]. */
@@ -18,6 +20,14 @@ public record RGBW (
 			((rgb & 0xff0000) >>> 16) / 255f, //
 			((rgb & 0x00ff00) >>> 8) / 255f, //
 			((rgb & 0x0000ff)) / 255f);
+	}
+
+	public RGBW lerp (RGBW other, float t) {
+		return new RGBW( //
+			Colors.lerp(r, other.r, t), //
+			Colors.lerp(g, other.g, t), //
+			Colors.lerp(b, other.b, t), //
+			Colors.lerp(w, other.w, t));
 	}
 
 	/** @return [0..255] */

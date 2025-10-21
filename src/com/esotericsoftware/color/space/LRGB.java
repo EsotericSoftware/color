@@ -3,8 +3,8 @@ package com.esotericsoftware.color.space;
 
 import static com.esotericsoftware.color.Colors.*;
 
-import com.esotericsoftware.color.Gamut;
 import com.esotericsoftware.color.Colors;
+import com.esotericsoftware.color.Gamut;
 import com.esotericsoftware.color.space.RGBWW.WW;
 
 /** Linear RGB, without gamma correction. Values are not clamped. */
@@ -48,11 +48,28 @@ public record LRGB (
 	/** Convert to RGBW using one calibrated white LED color. Moves power from RGB to W.
 	 * @param w White LED color. */
 	public RGBW RGBW (LRGB w) {
+		// Max white to extract.
 		float W = 1;
 		if (w.r > 0) W = Math.min(W, r / w.r);
 		if (w.g > 0) W = Math.min(W, g / w.g);
 		if (w.b > 0) W = Math.min(W, b / w.b);
-		return new RGBW(Math.max(0, r - W * w.r), Math.max(0, g - W * w.g), Math.max(0, b - W * w.b), W);
+
+		// Max scale factor that keeps RGB [0..1].
+		float scale = Float.MAX_VALUE;
+		if (r > 0) scale = Math.min(scale, (1 + W * w.r) / r);
+		if (g > 0) scale = Math.min(scale, (1 + W * w.g) / g);
+		if (b > 0) scale = Math.min(scale, (1 + W * w.b) / b);
+		scale = Math.max(1, scale); // Ensure brightness isn't reduced.
+
+		// RGB values at maximum brightness.
+		float maxR = Math.max(0, scale * r - W * w.r);
+		float maxG = Math.max(0, scale * g - W * w.g);
+		float maxB = Math.max(0, scale * b - W * w.b);
+
+		// Scale all channels to original brightness.
+		float current = Math.max(Colors.max(maxR, maxG, maxB), W);
+		scale = current > 0 ? Colors.max(r, g, b) / current : 1;
+		return new RGBW(maxR * scale, maxG * scale, maxB * scale, W * scale);
 	}
 
 	/** Convert to RGBWW using two calibrated white LED colors. Moves power from RGB to WW.
